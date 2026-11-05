@@ -1,20 +1,65 @@
 # Electronic Component CAD
 
-[日本語](README.ja.md) · [Skill instructions](SKILL.md) · [MIT license](LICENSE)
+[日本語](README.ja.md) · [Skill instructions](SKILL.md) · [Changelog](CHANGELOG.md) · [MIT license](LICENSE)
 
-An [Agent Skills](https://agentskills.io/specification) package for creating and correcting electronic-component 3D models from product URLs, part numbers, drawings and photographs. It guides a coding agent through **CadQuery + uv**, colored STEP export, independent dimension checks, STEP roundtrip checks and visual review.
+An [Agent Skills](https://agentskills.io/specification) package that helps coding agents create and correct electronic-component 3D models from product URLs, part numbers, drawings and photographs. It uses **CadQuery + uv** to produce colored STEP files, check dimensions and geometry, and render previews for visual review.
 
-The package includes an isolated background workspace with an empty component catalog, generator templates, a locked environment, STEP validation and VTK preview rendering. The agent still implements the target's geometry from evidence; this is not an automatic image-to-CAD converter.
+Your project receives only `models/<part-number>/`. Code, references, environments and caches stay in a persistent background workspace. The agent implements each part from evidence; this is not an automatic image-to-CAD converter.
 
-## Install in your AI tool
+## Requirements
 
-Use the [skills CLI](https://github.com/vercel-labs/skills) with Node.js 22.20+ and Git:
+**Python and uv are required to generate models.** Installing the skill's instructions alone does not install the CAD environment.
+
+| Requirement | Purpose |
+| --- | --- |
+| CPython **3.11, 3.12 or 3.13** | Runs the model generator. No fixed minor-version pin. |
+| [uv](https://docs.astral.sh/uv/getting-started/installation/) | Manages Python environments and locked dependencies; can also install Python. |
+| [Node.js](https://nodejs.org/en/download) **22.20+** and [Git](https://git-scm.com/install/) | Needed for the recommended [skills CLI](https://github.com/vercel-labs/skills) installation. |
+| An AI tool with file, shell and image-viewing access | Reads evidence, creates the model and inspects previews. |
+| Poppler or another PDF renderer | Needed when drawings are supplied as PDFs. |
+
+The bundled lock selects CadQuery **2.8.0**, whose [package requirement](https://pypi.org/project/cadquery/2.8.0/) is Python 3.11 or newer. This project's supported range is `>=3.11,<3.14`; Python 3.14+ is not enabled yet. CadQuery, VTK and other Python dependencies are installed by uv in the background workspace. FreeCAD is not required.
+
+## Install
+
+### 1. Prepare uv and Python
+
+If uv is missing, install it using the [official instructions](https://docs.astral.sh/uv/getting-started/installation/). For example, on Windows with WinGet:
+
+```powershell
+winget install --id=astral-sh.uv -e
+```
+
+On macOS with Homebrew:
+
+```sh
+brew install uv
+```
+
+For Linux and other installation methods, use the official instructions above. Reopen your terminal if the command is not found after installation.
+
+If you do not already have a supported Python, [uv can install it](https://docs.astral.sh/uv/guides/install-python/):
+
+```sh
+uv python install 3.13
+```
+
+3.13 is an example, not a required pin; 3.11 and 3.12 also work. You do not need a separate Python installer when using uv. Check the environment:
+
+```sh
+uv --version
+uv python find ">=3.11,<3.14"
+node --version
+git --version
+```
+
+### 2. Install the skill
 
 ```sh
 npx skills add Yarnadori/electronic-component-cad -g
 ```
 
-Select the AI tools in the installer. The recommended `-g` installs to your personal skill directories, keeping skill files out of the working project. Omit it only when you deliberately want a project-scoped skill installation. To choose several tools explicitly:
+Select your AI tools. `-g` installs to personal skill directories so installer files stay out of the working project. To select tools explicitly:
 
 ```sh
 npx skills add Yarnadori/electronic-component-cad -g -a codex claude-code gemini-cli cursor github-copilot windsurf
@@ -29,75 +74,59 @@ npx skills add Yarnadori/electronic-component-cad -g -a codex claude-code gemini
 | GitHub Copilot | `github-copilot` |
 | Windsurf | `windsurf` |
 
-The CLI supports [additional agents](https://github.com/vercel-labs/skills/blob/main/docs/agents.md) and chooses their directories, including shared `.agents/skills` directories. Use `--list` to preview this repository's skill without installing, or `--copy` to copy files instead of using symlinks. The repository contains one root-level skill, including its scripts and starter assets; no separate package publication is needed for this GitHub install command. See the [CLI reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md) for update and removal commands.
+See [additional supported tools](https://github.com/vercel-labs/skills/blob/main/docs/agents.md). `--list` lists the available skill without installing; `--copy` avoids symlinks. Reload the AI tool if the skill is not discovered. These are installation targets; end-to-end modeling behavior in every AI product is not certified.
 
 ### Manual alternatives
 
-Choose one installation method per tool. For manual installation, keep the folder name `electronic-component-cad` and clone **the whole folder**, including assets. These commands work in a POSIX shell or PowerShell; a custom Codex home may require a different destination.
+Choose one installation method per tool. Clone/copy the **whole folder**, including assets, using the name `electronic-component-cad`:
 
-**Codex**, default personal location:
+| Tool | Manual personal location |
+| --- | --- |
+| Codex | `~/.codex/skills/electronic-component-cad/` (or the configured Codex home) |
+| Claude Code | `~/.claude/skills/electronic-component-cad/` ([documentation](https://code.claude.com/docs/en/skills)) |
+| Gemini CLI | `gemini skills install https://github.com/Yarnadori/electronic-component-cad.git` ([documentation](https://geminicli.com/docs/cli/skills/)) |
 
-```sh
-git clone https://github.com/Yarnadori/electronic-component-cad.git "$HOME/.codex/skills/electronic-component-cad"
-```
+Other tools can use their supported Agent Skills directory or read `SKILL.md` explicitly. `agents/openai.yaml` is optional Codex display metadata; the workflow uses no vendor-specific API. A manual clone does not require Node.js, but model generation still requires Python and uv.
 
-**Claude Code**, [personal skills location](https://code.claude.com/docs/en/skills):
+## Use
 
-```sh
-git clone https://github.com/Yarnadori/electronic-component-cad.git "$HOME/.claude/skills/electronic-component-cad"
-```
-
-**Gemini CLI**, [skill installation](https://geminicli.com/docs/cli/skills/):
-
-```sh
-gemini skills install https://github.com/Yarnadori/electronic-component-cad.git
-```
-
-Other Agent Skills hosts can load the same `SKILL.md` from their supported skill directory. Without automatic skill discovery, explicitly ask the agent to read `SKILL.md` and follow its linked references. `agents/openai.yaml` is optional Codex UI metadata; the core workflow uses no Codex-specific APIs. Do not clone over an existing installation; update it deliberately. Reload/restart the host if it does not discover the new skill.
-
-## Use it
-
-In Codex:
+In Codex, supply a product URL or part number:
 
 ```text
-Use $electronic-component-cad to create a KiCad STEP model for this product:
-<product URL>
+$electronic-component-cad
+Create a KiCad STEP model for this product: <product URL>
 ```
 
-In Claude Code, invoke `/electronic-component-cad` with the product URL. In other hosts, request the skill by name or provide its `SKILL.md` path. You can also request a correction to an existing model, with the target part and observed defect.
+Claude Code uses `/electronic-component-cad`. You can also request corrections to an existing model. The agent checks drawings/photos, writes CadQuery geometry, reimports the exported STEP, checks dimensions/solids/colors/overlaps, and inspects rendered images.
 
-Your project receives only `models/<part-number>/`, containing the colored STEP, previews, validation records and model notes. Source code, downloaded references, environments and caches stay in a persistent workspace outside your project. The same project reuses its workspace for corrections and regeneration; editable source remains available on request. The agent handles this setup in the background.
+Outputs include the STEP, previews, validation records and notes under `models/<part-number>/`. Editable code and provenance remain in the background workspace and can be provided on request. The same resolved project path reuses the same workspace. Moving the project to a different path creates a separate workspace.
 
-## Requirements and boundaries
+## Update
 
-- File read/write, shell execution, and an image-viewing capability in the agent environment.
-- uv and Python 3.11. The bundled lock selects CadQuery 2.8.0 and its dependencies.
-- Poppler (`pdfinfo`, `pdftoppm`) or another PDF renderer for supplied drawings.
-- Network access for original sources and initial dependencies, or locally supplied references and a populated package cache.
-
-The skill respects the current host's permissions and existing project conventions. It does not disable download restrictions, publish a user's drawings, or add unrelated components. Manufacturer PDFs/photos and previously generated component models are **not included** in this distribution. Dependencies retain their own licenses.
-
-Windows CAD export/rendering and the standalone starter are exercised by the package tests. Other OS backends and end-to-end operation in Claude Code/Gemini CLI have not been tested. The agent must still inspect the actual drawings and final images. KiCad placement, printability and mechanical/thermal/electrical performance require their own checks.
-
-## Workspace setup for agents
+Updates are **manual**. For a personal skills CLI installation:
 
 ```sh
-python /path/to/electronic-component-cad/scripts/init_project.py /path/to/user-project --json
+npx skills update electronic-component-cad -g
 ```
 
-The initializer returns a workspace outside the user project. Existing project files and edited workspace sources are preserved. Follow [the project API guide](references/project-api.md) for internal commands, storage locations and an optional override. Keep setup commands and workspace paths out of routine user-facing output.
+For a manual Git clone, run `git pull --ff-only` inside that clone. Follow the relevant tool's method for other installation types. See the [skills CLI reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md) and [changelog](CHANGELOG.md).
 
-`--standalone` is an explicit alternative for creating an editable CAD library directly in a new/empty directory; it refuses an occupied destination. Existing CAD libraries should reuse their pipeline. Files created in a project by older versions are not automatically moved or deleted.
+Updating instructions does not automatically overwrite edited workspaces, switch their Python version, regenerate models or remove files created by older versions. Existing workspaces may retain their earlier Python selection; changing it is a separate explicit operation.
 
-## Development checks
+## Troubleshooting and limits
 
-From this repository root, install the starter's locked dependencies and run the tests:
+| Symptom | Action |
+| --- | --- |
+| `uv` or another command is missing | Install it and restart the terminal/AI tool so its PATH is refreshed. |
+| No compatible Python is found | Use `uv python install 3.13`, then check the supported range above. |
+| Dependencies cannot be downloaded | First-time setup needs network access; `--offline` requires installed/cached dependencies. |
+| A PDF cannot be inspected | Install a PDF renderer or supply usable drawing images; do not claim visual review from text alone. |
+| Preview rendering fails | Check the rendering backend in the actual OS/headless environment; see [validation scope](VALIDATION.md). |
 
-```sh
-uv sync --project assets/starter --locked
-uv run --project assets/starter --offline python -m unittest discover -s tests -v
-```
+The skill respects host permissions. It does not disable download/write restrictions. Manufacturer PDFs, photos and component models are not distributed in this package. KiCad placement, printability, thread fit and thermal/electrical performance require their own checks.
 
-Tests exercise external workspace creation/reuse, project isolation, refusal to overwrite unrecognized workspaces, no fallback into the project on setup failure, explicit standalone setup, incomplete-template guards, colored STEP export/reimport, output overrides, overlap rejection and previews in temporary projects. Rendering is checked for output creation; human/agent visual inspection remains a separate step. See [validation notes](VALIDATION.md) for the recorded verification scope.
+## Development
 
-When contributing, keep the skill vendor-neutral, keep sample geometry synthetic or appropriately licensed, and test any scripts in isolation. Do not include downloaded datasheets, product photos, credentials, local environments or personal paths.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for reporting issues and testing changes, [VALIDATION.md](VALIDATION.md) for recorded checks, and the [project API guide](references/project-api.md) for internal workspace commands and explicit standalone-library mode.
+
+Code and instructions are [MIT licensed](LICENSE). Dependencies and externally obtained references retain their own licenses.

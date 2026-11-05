@@ -3,12 +3,14 @@ name: electronic-component-cad
 description: Use when creating or correcting a dimensioned 3D CAD model of an electronic component from a product URL, part number, datasheet, or drawing, especially CadQuery STEP models for KiCad. Includes connectors, displays, switches, packages, and heatsinks. Not for PCB routing, footprint-only work, or illustrative 3D images.
 license: MIT
 metadata:
-  version: "0.1.1"
+  version: "0.1.2"
 ---
 
 # Electronic Component CAD
 
 Deliver a colored STEP, dimensional notes, and previews rendered from the exported STEP. Retain editable CadQuery source and evidence in the background workspace. Use **CadQuery + uv** unless the user explicitly selects another workflow. This skill needs file/shell access, a CAD-capable Python environment, and a way to inspect images. Use the host's available tools; no vendor-specific plugin is required.
+
+Check that uv and a supported CPython (3.11, 3.12 or 3.13) are available before modeling. There is no fixed Python minor-version pin. uv can obtain a compatible interpreter when one is missing; follow the host's network permissions. Read the project API guide for range-based bootstrap commands. CadQuery and rendering dependencies are installed from the lock in the background workspace, not globally.
 
 ## Choose the project route
 

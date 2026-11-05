@@ -1,20 +1,65 @@
 # 電子部品3Dモデル作成スキル
 
-[English](README.md) · [共通指示](SKILL.md) · [MITライセンス](LICENSE)
+[English](README.md) · [共通指示](SKILL.md) · [変更履歴](CHANGELOG.md) · [MITライセンス](LICENSE)
 
-商品URL・型番・寸法図を指定し、**CadQuery＋uv**で電子部品の色付きSTEPを作成・修正するためのスキルです。資料確認、形状の作り込み、STEP再読込・寸法検証、最終画像の確認までを扱います。
+商品URL・型番・寸法図から、AIが **CadQuery＋uv** で電子部品の色付きSTEPを作成・修正するための[Agent Skills形式](https://agentskills.io/specification)のスキルです。資料確認、形状作成、STEP再読込・寸法検証、プレビュー確認までを扱います。
 
-特定のAI専用APIを使わず、[Agent Skills形式](https://agentskills.io/specification)の`SKILL.md`を入口にしています。生成・検証・描画の共通コードとロック済み環境を同梱し、AIが作業フォルダの外で利用します。部品形状そのものは、AIが対象資料を確認して実装します。
+作業フォルダに追加するのは`models/<部品型番>/`だけです。生成コード・資料・仮想環境・キャッシュは別の作業環境で管理します。画像から自動変換する仕組みではなく、AIが資料を読んで部品ごとの形状を実装します。
 
-## 導入
+## 必要なもの
 
-[skills CLI](https://github.com/vercel-labs/skills)で、利用するAIツールを選んでインストールできます。Node.js 22.20以降とGitが必要です。
+**モデル生成にはPythonとuvが必要です。** スキルのインストールだけではCADの実行環境は入りません。
+
+| 必要なもの | 用途 |
+| --- | --- |
+| CPython **3.11・3.12・3.13のいずれか** | モデル生成コードの実行。3.11固定ではありません。 |
+| [uv](https://docs.astral.sh/uv/getting-started/installation/) | Python環境・依存関係の管理。Python本体の導入もできます。 |
+| [Node.js](https://nodejs.org/en/download) **22.20以降**と[Git](https://git-scm.com/install/) | 推奨する[skills CLI](https://github.com/vercel-labs/skills)での導入に使用します。 |
+| ファイル操作・シェル実行・画像確認ができるAIツール | 資料の取得・確認、モデル作成、画像による仕上がり確認に使用します。 |
+| PopplerなどのPDF画像化ツール | PDFの寸法図を扱う場合に必要です。 |
+
+同梱ロックはCadQuery **2.8.0**を使い、[この版自体がPython 3.11以上を要求します](https://pypi.org/project/cadquery/2.8.0/)。本プロジェクトの対応範囲は`>=3.11,<3.14`です。3.14以降はまだ対象に含めていません。CadQueryや描画用ライブラリは、AIがuvで専用環境へ導入します。FreeCADは不要です。
+
+## 導入手順
+
+### 1. uvとPythonを準備する
+
+uvが未導入なら[公式の導入手順](https://docs.astral.sh/uv/getting-started/installation/)を参照してください。WindowsでWinGetを使う場合は次のコマンドです。
+
+```powershell
+winget install --id=astral-sh.uv -e
+```
+
+macOSでHomebrewを使う場合：
+
+```sh
+brew install uv
+```
+
+Linuxやその他の導入方法は上記の公式手順を参照してください。導入直後にコマンドが見つからない場合は、ターミナルを開き直します。
+
+対応するPythonがまだない場合は、[uvから導入できます](https://docs.astral.sh/uv/guides/install-python/)。
+
+```sh
+uv python install 3.13
+```
+
+3.13は一例で、3.11・3.12も使えます。uvを使う場合はPythonのインストーラーを別に用意する必要はありません。準備できたかは次で確認できます。
+
+```sh
+uv --version
+uv python find ">=3.11,<3.14"
+node --version
+git --version
+```
+
+### 2. スキルをインストールする
 
 ```sh
 npx skills add Yarnadori/electronic-component-cad -g
 ```
 
-推奨の`-g`は個人用のスキル保存先へ導入するため、作業フォルダにスキル自体のファイルも増やしません。プロジェクト内へ明示的に導入したい場合だけ省略してください。対象をまとめて指定する場合は、次のように実行できます。
+利用するAIツールを選びます。`-g`は個人用の保存先へ導入する指定で、作業フォルダにスキル自体のファイルも増やしません。対象をまとめて指定する場合：
 
 ```sh
 npx skills add Yarnadori/electronic-component-cad -g -a codex claude-code gemini-cli cursor github-copilot windsurf
@@ -29,56 +74,59 @@ npx skills add Yarnadori/electronic-component-cad -g -a codex claude-code gemini
 | GitHub Copilot | `github-copilot` |
 | Windsurf | `windsurf` |
 
-ほかの対応先は[skills CLIの対応ツール一覧](https://github.com/vercel-labs/skills/blob/main/docs/agents.md)を参照してください。CLIが各ツールの保存先を選び、一部では共通の`.agents/skills`を使います。`--list`でインストール前の一覧確認、`--copy`でシンボリックリンクを使わないコピー方式を選べます。このリポジトリはルートの`SKILL.md`から検出でき、スクリプト・ひな形も一緒に導入されます。GitHubからの導入に別途パッケージ登録は不要です。[更新・削除などのCLI仕様](https://github.com/vercel-labs/skills/blob/main/docs/commands.md)も参照できます。
+その他は[対応ツール一覧](https://github.com/vercel-labs/skills/blob/main/docs/agents.md)を参照してください。`--list`で導入前の一覧確認、`--copy`でコピー方式を選べます。スキルが見つからない場合はAIツールを再読み込み・再起動してください。これはインストール先の対応であり、すべてのAIによるモデル作成の品質を保証するものではありません。
 
 ### 手動で導入する場合
 
-各ツールでは導入方法を1つ選んでください。手動配置ではフォルダ名を`electronic-component-cad`にし、`assets`なども含めて丸ごと配置します。
+各ツールでは導入方法を1つ選んでください。`assets`等も含めた**フォルダ全体**を、`electronic-component-cad`という名前で配置します。
 
-| AI環境 | 導入方法 |
+| AIツール | 個人用の手動配置先 |
 | --- | --- |
-| Codex | 通常は`~/.codex/skills/electronic-component-cad/`。`CODEX_HOME`を変更している場合はその配下の`skills/` |
+| Codex | `~/.codex/skills/electronic-component-cad/`。Codexの保存先を変更している場合はその配下 |
 | Claude Code | `~/.claude/skills/electronic-component-cad/`。[公式説明](https://code.claude.com/docs/en/skills) |
 | Gemini CLI | `gemini skills install https://github.com/Yarnadori/electronic-component-cad.git`。[公式説明](https://geminicli.com/docs/cli/skills/) |
-| その他のAI | 対応するスキル検索先へ配置するか、`SKILL.md`を明示的に読ませる |
 
-例えばCodexの標準の個人用フォルダへは、PowerShellやPOSIXシェルで次のように取得できます。
+他のAIでは対応するスキル保存先へ配置するか、`SKILL.md`を明示的に読ませます。`agents/openai.yaml`はCodexの表示用情報で、処理自体は特定のAI専用APIに依存しません。Gitによる手動取得ならNode.jsは不要ですが、モデル生成にはPythonとuvが必要です。
 
-```sh
-git clone https://github.com/Yarnadori/electronic-component-cad.git "$HOME/.codex/skills/electronic-component-cad"
-```
+## 使い方
 
-既存の同名フォルダには上書きせず、内容を確認して更新してください。新しいスキルが見つからない場合は、AI環境を再読み込み・再起動します。`agents/openai.yaml`はCodexの表示用情報であり、他のAIで使う際に必須ではありません。
-
-## 依頼例
-
-Codexでは次のように指定します。
+Codexでは商品URLや型番と一緒に依頼します。
 
 ```text
 $electronic-component-cad
 この商品のKiCad用3Dモデルを作成して：商品URL
 ```
 
-Claude Codeでは`/electronic-component-cad`と商品URLを渡します。スキルを自動読込しないAIには「このフォルダのSKILL.mdを読み、指定した部品の3Dモデルを作成して」と依頼できます。既存モデルの修正にも使えます。
+Claude Codeでは`/electronic-component-cad`を使います。既存モデルの修正にも対応します。AIが図面・写真を確認してCadQueryコードを作り、出力STEPを再読込して寸法・ソリッド・色・部材の重なりを検証し、描画画像を確認します。
 
-作業フォルダに追加するのは`models/<部品型番>/`だけです。その中に色付きSTEP、画像、検証結果、寸法・座標・近似範囲の説明を出力します。生成用コード、仮想環境、ダウンロードした資料は作業フォルダの外に保存し、AIが裏側で扱います。同じプロジェクトでの修正・再生成には保存済みの環境を再利用し、編集可能なソースも必要なときに取り出せます。
+成果物は`models/<部品型番>/`内のSTEP、画像、検証結果、寸法・原点・近似範囲の説明です。編集可能なソースと資料は別の作業環境に保持し、必要なときに取り出せます。同じ絶対パスのプロジェクトでは環境を再利用します。プロジェクトを別の場所へ移すと、新しい作業環境になります。
 
-## 必要な環境と確認範囲
+## 更新方法
 
-ファイル操作・シェル実行・画像を見る機能、uv、Python 3.11、PDF画像化用のPoppler等が必要です。同梱ロックはCadQuery 2.8.0を使います。初回依存導入や資料取得には通信が必要ですが、手元の資料・キャッシュも利用できます。環境側の通信・書込み制限を解除するスキルではありません。
+**自動更新はしません。** skills CLIで個人用に導入した場合：
 
-Windows上でひな形の生成・STEP検証・描画を確認しています。他OSやClaude Code・Gemini CLIでの一連の実行は未検証です。KiCad上の実配置や造形可能性、ねじのかみ合い、熱・電気特性も別途確認が必要です。
-
-メーカーのPDF・商品写真・既存の部品モデルは配布物に含めていません。MITライセンスは本パッケージの手順・コードに適用され、依存ソフトや別途取得する資料にはそれぞれの条件が適用されます。
-
-## エージェント向けの作業環境準備
-
-```text
-python スキルフォルダ/scripts/init_project.py 利用するプロジェクトのフォルダ --json
+```sh
+npx skills update electronic-component-cad -g
 ```
 
-利用者が通常この操作を行う必要はありません。AIが初期化結果の作業場所で環境構築・資料取得・モデル作成を進め、成果物だけを利用者のプロジェクトへ出します。プロジェクト内の既存ファイルと、保存済みの生成ソースは保持します。保存場所や内部の実行手順は[APIガイド](references/project-api.md)にあります。
+Git cloneで取得した場合は、そのフォルダ内で`git pull --ff-only`を実行します。他の方法で導入した場合は各ツールの更新方法に従ってください。[CLI仕様](https://github.com/vercel-labs/skills/blob/main/docs/commands.md)と[変更履歴](CHANGELOG.md)も参照できます。
 
-コードを含む独立したCADライブラリを直接作りたい場合だけ、`--standalone`を指定できます。この場合は新しい空のフォルダが必要です。既存のCADライブラリはその処理を再利用し、旧版で作られたファイルを自動的に移動・削除することはありません。
+スキルを更新しても、編集済みの作業環境の上書き、Pythonの切替、モデルの再生成、旧版が作成したファイルの削除は行いません。既存環境に以前のPython指定が残っている場合、切替は別途明示的に行います。
 
-検証コマンドは[英語README](README.md#development-checks)、実施範囲は[VALIDATION.md](VALIDATION.md)にあります。
+## 困ったとき・確認範囲
+
+| 症状 | 確認すること |
+| --- | --- |
+| `uv`等のコマンドが見つからない | 導入後にターミナル・AIツールを再起動し、PATHを反映します。 |
+| 対応するPythonがない | `uv python install 3.13`で導入し、上記の対応範囲を確認します。 |
+| 依存関係を取得できない | 初回は通信が必要です。`--offline`は導入済み・キャッシュ利用時の指定です。 |
+| PDFの図面を確認できない | PDF画像化ツールを導入するか、読める図面画像を用意します。テキストだけで画像確認済みにはしません。 |
+| プレビューを描画できない | OSや画面のない環境の描画バックエンドを確認します。[検証範囲](VALIDATION.md)も参照してください。 |
+
+環境側の通信・書込み制限を解除するスキルではありません。メーカーのPDF・商品写真・部品モデルはこの配布物に含めていません。KiCad上の実配置、造形可能性、ねじのかみ合い、熱・電気特性は別途確認が必要です。
+
+## 開発・貢献
+
+不具合報告やテスト方法は[CONTRIBUTING.md](CONTRIBUTING.md)、実施した確認は[VALIDATION.md](VALIDATION.md)、内部の作業環境と独立ライブラリ作成モードは[APIガイド](references/project-api.md)にあります。
+
+手順・コードは[MITライセンス](LICENSE)です。依存ソフトと別途取得する資料には、それぞれの利用条件が適用されます。

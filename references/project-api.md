@@ -4,10 +4,10 @@ Use an existing project's API when one is present. This document describes the *
 
 ## Prepare a background workspace
 
-Run the initializer with any Python 3.11+ interpreter, replacing the two paths:
+Install uv first; the CAD runtime supports CPython 3.11–3.13 (`>=3.11,<3.14`). It is not pinned to 3.11. Run the initializer through uv, replacing the two paths:
 
 ```text
-python /path/to/electronic-component-cad/scripts/init_project.py /path/to/user-project --json
+uv run --no-project --python ">=3.11,<3.14" /path/to/electronic-component-cad/scripts/init_project.py /path/to/user-project --json
 ```
 
 The user project may already contain KiCad files or other work. It is not scaffolded. JSON returns `workspace`, `output_directory` (the project's `models/`) and `created`. Repeat the same call to resume the workspace without replacing edited generators. Projects are identified by resolved absolute path, so two projects with the same folder name remain separate.
@@ -19,7 +19,7 @@ Use the returned `workspace` as the working directory for file operations and co
 Run the following **inside the returned workspace**:
 
 ```powershell
-uv sync --locked
+uv sync --locked --python ">=3.11,<3.14"
 uv run --offline python -c "import cadquery as cq; print(cq.__version__); print(cq.Workplane('XY').box(1, 2, 3).val().Volume())"
 uv run --offline python -m component_cad list
 ```
@@ -28,7 +28,7 @@ When invoking uv from elsewhere, use `uv --directory "<workspace>" ...` so both 
 
 If the user explicitly requests a standalone CAD source library, `init_project.py <new-empty-directory> --standalone` copies the files directly there and refuses an occupied destination. Reuse a pre-existing CAD library through its own API. Existing root-level scaffolding from an older version is not moved or deleted automatically; migration requires identifying the user's files and preserving their changes. A project moved to another absolute path gets a new workspace; retain the previous one until any desired source migration is complete.
 
-The bundled lock uses Python 3.11 and CadQuery 2.8.0. The volume check should report 6.0. The initial catalog is intentionally empty. A first sync may download Python/dependencies; `--offline` is for an installed environment or populated cache. Do not copy another machine's `.venv` or re-run `uv init` in an existing project.
+The bundled lock selects CadQuery 2.8.0 across Python 3.11–3.13. Its lower bound follows [CadQuery 2.8.0's package requirement](https://pypi.org/project/cadquery/2.8.0/); this project has not enabled Python 3.14+. No `.python-version` file is distributed. uv selects a compatible installed interpreter or obtains one when permitted. To choose a specific supported version, use e.g. `uv sync --locked --python 3.13`; the example is not a repository-wide pin. The volume check should report 6.0. The initial catalog is intentionally empty. A first sync may download Python/dependencies; `--offline` is for an installed environment or populated cache. Do not copy another machine's `.venv` or re-run `uv init` in an existing project.
 
 PDF rasterization needs a separate Poppler installation (`pdfinfo`, `pdftoppm`), or an available equivalent. VTK/Pillow handle STEP previews. The starter tries Arial, DejaVu Sans, then Pillow's fallback font. Headless rendering and other operating systems require verification in the target environment; the supplied workflow has been exercised on Windows only.
 

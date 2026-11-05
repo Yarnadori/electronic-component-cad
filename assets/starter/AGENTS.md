@@ -3,6 +3,7 @@
 - Read README.md and docs/adding-components.md before editing. Preserve existing models and user changes.
 - This directory is the agent's working environment. When workspace.json is present, keep all code, references, plans and dependencies here; only model outputs go to its configured user project. Do not expose internal paths/module names in normal user-facing notes or replies.
 - Use CadQuery with the uv lock. Generate named/material-colored STEP assemblies and editable source.
+- Use CPython 3.11–3.13; no minor version is pinned. Run `uv sync --locked --python ">=3.11,<3.14"` in this workspace to select a compatible runtime, then use its environment for all commands.
 - Save drawings/photos in references/<part-number>/ with URLs, revision/page, date and hashes. Actually view relevant drawings and photos.
 - Record specified, calculated, approximate and unknown dimensions separately. Count physical pins independently of electrical functions; distinguish package, mating and PCB-hole dimensions.
 - Use mm, mounting plane Z=0, and document axes/origin. Inspect visible contours as well as the envelope.

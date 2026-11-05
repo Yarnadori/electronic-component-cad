@@ -1,0 +1,36 @@
+name: Starter checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  starter:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: assets/starter/uv.lock
+      - name: Install rendering support
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes xvfb xauth libgl1 libgl1-mesa-dri libegl1
+      - name: Install locked dependencies
+        run: uv sync --project assets/starter --locked --python "${{ matrix.python }}"
+      - name: Verify Python and CAD kernel
+        run: uv run --project assets/starter --offline python -c "import sys, cadquery as cq; print(sys.version); assert cq.Workplane('XY').box(1,2,3).val().Volume() == 6"
+      - name: Run workspace and CAD tests
+        run: xvfb-run -a uv run --project assets/starter --offline python -m unittest discover -s tests -v

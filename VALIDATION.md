@@ -2,9 +2,19 @@
 
 This file describes the package's verification scope, not a certification of any component model.
 
-The starter is validated on Windows with uv-managed CPython 3.11.14 and CadQuery 2.8.0. FreeCAD is not required. The current suite contains **9 tests** covering workspace isolation and the CAD pipeline; run the commands below or in README.md for current results.
+The starter supports **CPython 3.11–3.13** with CadQuery 2.8.0. It has no fixed Python minor-version pin. FreeCAD is not required. The suite contains **9 tests** covering workspace isolation and the CAD pipeline.
 
-On 2026-11-05, all **9 tests passed with 0 skips**. Skill structure, Python syntax, local links and the uv lock check passed. A fresh uv environment in an external workspace imported the renamed package and generated a volume-6 unit-test solid while leaving the user project empty. Its default cache path also resolved inside the workspace. Dependency package versions are unchanged.
+Local verification on 2026-11-05 used separate uv environments on Windows x86-64:
+
+| Python | Result |
+| --- | --- |
+| 3.11.14 | 9 passed, 0 skipped |
+| 3.12.12 | 9 passed, 0 skipped |
+| 3.13.9 | 9 passed, 0 skipped |
+
+Each version exercised STEP export/reimport, geometry and overlap checks, preview rendering, external workspace isolation and output overrides. The dependency lock is unchanged. See [GitHub Actions](https://github.com/Yarnadori/electronic-component-cad/actions/workflows/ci.yml) for the current Ubuntu/Python matrix results; the committed workflow alone is not evidence of a passing run.
+
+The documented range-based bootstrap was also exercised after removing the pin: uv selected Python 3.13.9, created an external workspace/environment, and generated a volume-6 CAD smoke solid without adding files to the user's project.
 
 Installation verification uses skills CLI **1.7.6** on Node.js **24.16.0** to discover the skill from `Yarnadori/electronic-component-cad` and install it in an isolated project for **Codex, Claude Code, Gemini CLI, Cursor, GitHub Copilot and Windsurf**. Check that the entire skill, including starter assets, arrives intact while local environments and caches are excluded. Installation checks verify file delivery and bundled code, not execution by each AI product.
 
@@ -22,7 +32,7 @@ Then run the initializer and development checks using the installed skill's path
 - CAD integration: a synthetic two-solid model is exported/reimported/rendered from an external workspace into the user's models folder. Only models is added to the user project; notes are copied without exposing workspace paths. Validation and explicit output overrides use the same destination rules. The empty catalog and unfilled-template guards also run.
 - The synthetic CAD check exercises positive solids, colors, STEP identity/roundtrip, output hashes and deliberate overlap rejection. Its generated previews are test artifacts, not a shipped manufacturer's model.
 - Real component measurements and visual acceptance remain the responsibility of each invocation. The starter cannot infer dimensions or confirm that an agent actually viewed an image.
-- Windows / Python 3.11 / CadQuery 2.8.0 is the execution target used for local validation. Other OS rendering backends have not been exercised here.
+- Windows x86-64 is the local verification platform. CI uses Ubuntu with a virtual display and software rendering support. macOS and other OS/architecture combinations have not been exercised here.
 - Claude Code and Gemini CLI installation instructions follow their published skill documentation; their complete CAD workflows have not been run for this release.
 
 Reproduce the package tests using the commands in README.md. Do not interpret successful script tests as evidence of end-to-end behavioral equivalence across AI products.
