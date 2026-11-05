@@ -1,5 +1,5 @@
 [project]
-name = "akicad-3d"
+name = "electronic-component-models"
 version = "0.1.0"
 description = "Parametric electronic component models for KiCad"
 requires-python = ">=3.11,<3.14"

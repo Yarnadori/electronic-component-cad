@@ -3,18 +3,19 @@ name: electronic-component-cad
 description: Use when creating or correcting a dimensioned 3D CAD model of an electronic component from a product URL, part number, datasheet, or drawing, especially CadQuery STEP models for KiCad. Includes connectors, displays, switches, packages, and heatsinks. Not for PCB routing, footprint-only work, or illustrative 3D images.
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # Electronic Component CAD
 
-Deliver a colored STEP, editable CadQuery source, dimensional evidence, and previews rendered from the exported STEP. Use **CadQuery + uv** unless the user explicitly selects another workflow. This skill needs file/shell access, a CAD-capable Python environment, and a way to inspect images. Use the host's available tools; no vendor-specific plugin is required.
+Deliver a colored STEP, dimensional notes, and previews rendered from the exported STEP. Retain editable CadQuery source and evidence in the background workspace. Use **CadQuery + uv** unless the user explicitly selects another workflow. This skill needs file/shell access, a CAD-capable Python environment, and a way to inspect images. Use the host's available tools; no vendor-specific plugin is required.
 
 ## Choose the project route
 
-- **Existing project:** read its agent instructions, README, dependency lock and generator interfaces. Reuse its pipeline and preserve unrelated models. Do not install the starter over it.
-- **Empty project:** use [scripts/init_project.py](scripts/init_project.py) to copy the included starter into a new/empty directory. It refuses an occupied destination. Read [references/project-api.md](references/project-api.md) for setup, registration and commands.
-- Default output layout for a new project: `models/<part-number>/` and `references/<part-number>/`. Keep the complete manufacturer identity in metadata. Use safe single-directory identifiers for filenames; document any mapping from a part number containing slashes or other path characters.
+- **Normal use in a user's project:** read applicable project instructions, then run [scripts/init_project.py](scripts/init_project.py) with the user project path and `--json`. It creates/reuses a persistent workspace in OS user data, outside the project. Use the returned `workspace` for ALL code, downloads, planning notes, uv commands, dependencies and caches. The user's project receives only `models/<part-number>/` when building. Read [references/project-api.md](references/project-api.md) for commands.
+- **Existing CAD library:** reuse its current generator interfaces and preserve unrelated models. Do not scaffold over it, silently migrate its files or delete previously generated code. An explicit `--standalone` mode is available only when the user asks for an editable library directly in a new/empty directory.
+- Do not copy the starter, environment files or source packages into the user project or the shared skill installation. If the workspace location is unavailable, report the specific problem; do not silently fall back to the project root.
+- Store original references under the workspace's `references/<part-number>/`. Keep the complete manufacturer identity in metadata. Use safe single-directory identifiers for filenames; document any mapping from a part number containing slashes or other path characters.
 
 ## Establish the evidence
 
@@ -38,4 +39,4 @@ The starter supplies common validity, overlap, STEP roundtrip and rendering func
 
 Save source, STEP, previews, `validation.json`, dimension/coordinate notes and a visual-review record. Associate metadata, validation and rendered images with the same STEP SHA-256. In an existing project, check that unrelated artifacts remain unchanged. Do not regenerate existing models for a documentation-only change.
 
-Report links to STEP, preview, source and README; summarize verified checks and meaningful approximations. Say which checks, visual inspections or KiCad placement steps were not performed. A KiCad display model is not automatically a printable, thermal, electrical-contact or thread-fit model.
+Report links to STEP, preview and the model's README/notes; summarize verified checks and meaningful approximations. Keep internal package names, workspace paths and setup commands out of normal user-facing replies. Provide source or regeneration details when requested, without deleting the retained source. Write model notes for the user, using source URLs and measurements rather than links into the internal workspace. Say which checks, visual inspections or KiCad placement steps were not performed. A KiCad display model is not automatically a printable, thermal, electrical-contact or thread-fit model.

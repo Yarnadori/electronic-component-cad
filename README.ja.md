@@ -4,20 +4,20 @@
 
 商品URL・型番・寸法図を指定し、**CadQuery＋uv**で電子部品の色付きSTEPを作成・修正するためのスキルです。資料確認、形状の作り込み、STEP再読込・寸法検証、最終画像の確認までを扱います。
 
-特定のAI専用APIを使わず、[Agent Skills形式](https://agentskills.io/specification)の`SKILL.md`を入口にしています。空のプロジェクト用に、生成・検証・描画の共通コードとロック済み環境も同梱しています。部品形状そのものは、AIが対象資料を確認して実装します。
+特定のAI専用APIを使わず、[Agent Skills形式](https://agentskills.io/specification)の`SKILL.md`を入口にしています。生成・検証・描画の共通コードとロック済み環境を同梱し、AIが作業フォルダの外で利用します。部品形状そのものは、AIが対象資料を確認して実装します。
 
 ## 導入
 
 [skills CLI](https://github.com/vercel-labs/skills)で、利用するAIツールを選んでインストールできます。Node.js 22.20以降とGitが必要です。
 
 ```sh
-npx skills add Yarnadori/electronic-component-cad
+npx skills add Yarnadori/electronic-component-cad -g
 ```
 
-標準では現在のプロジェクトに導入します。どのプロジェクトでも使う個人用インストールには`-g`を付けてください。対象をまとめて指定する場合は、次のように実行できます。
+推奨の`-g`は個人用のスキル保存先へ導入するため、作業フォルダにスキル自体のファイルも増やしません。プロジェクト内へ明示的に導入したい場合だけ省略してください。対象をまとめて指定する場合は、次のように実行できます。
 
 ```sh
-npx skills add Yarnadori/electronic-component-cad -a codex claude-code gemini-cli cursor github-copilot windsurf
+npx skills add Yarnadori/electronic-component-cad -g -a codex claude-code gemini-cli cursor github-copilot windsurf
 ```
 
 | AIツール | `--agent`の指定値 |
@@ -61,7 +61,7 @@ $electronic-component-cad
 
 Claude Codeでは`/electronic-component-cad`と商品URLを渡します。スキルを自動読込しないAIには「このフォルダのSKILL.mdを読み、指定した部品の3Dモデルを作成して」と依頼できます。既存モデルの修正にも使えます。
 
-成果物は色付きSTEP、編集できるPythonソース、STEPから描いた画像、検証JSON、寸法・座標・近似範囲の説明です。新規プロジェクトの標準保存先は`models/<部品型番>/`、資料は`references/<部品型番>/`です。
+作業フォルダに追加するのは`models/<部品型番>/`だけです。その中に色付きSTEP、画像、検証結果、寸法・座標・近似範囲の説明を出力します。生成用コード、仮想環境、ダウンロードした資料は作業フォルダの外に保存し、AIが裏側で扱います。同じプロジェクトでの修正・再生成には保存済みの環境を再利用し、編集可能なソースも必要なときに取り出せます。
 
 ## 必要な環境と確認範囲
 
@@ -71,12 +71,14 @@ Windows上でひな形の生成・STEP検証・描画を確認しています。
 
 メーカーのPDF・商品写真・既存の部品モデルは配布物に含めていません。MITライセンスは本パッケージの手順・コードに適用され、依存ソフトや別途取得する資料にはそれぞれの条件が適用されます。
 
-## 空のプロジェクトで始める
+## エージェント向けの作業環境準備
 
 ```text
-python スキルフォルダ/scripts/init_project.py 新しい空の作業フォルダ
+python スキルフォルダ/scripts/init_project.py 利用するプロジェクトのフォルダ --json
 ```
 
-既存ファイルのある保存先には書き込みません。作成後は[APIと実行手順](references/project-api.md)に従ってください。すでに部品ライブラリがある場合は、その生成・検証処理を再利用します。
+利用者が通常この操作を行う必要はありません。AIが初期化結果の作業場所で環境構築・資料取得・モデル作成を進め、成果物だけを利用者のプロジェクトへ出します。プロジェクト内の既存ファイルと、保存済みの生成ソースは保持します。保存場所や内部の実行手順は[APIガイド](references/project-api.md)にあります。
+
+コードを含む独立したCADライブラリを直接作りたい場合だけ、`--standalone`を指定できます。この場合は新しい空のフォルダが必要です。既存のCADライブラリはその処理を再利用し、旧版で作られたファイルを自動的に移動・削除することはありません。
 
 検証コマンドは[英語README](README.md#development-checks)、実施範囲は[VALIDATION.md](VALIDATION.md)にあります。

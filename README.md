@@ -4,20 +4,20 @@
 
 An [Agent Skills](https://agentskills.io/specification) package for creating and correcting electronic-component 3D models from product URLs, part numbers, drawings and photographs. It guides a coding agent through **CadQuery + uv**, colored STEP export, independent dimension checks, STEP roundtrip checks and visual review.
 
-The package includes a standalone starter with an empty component catalog, generators' templates, a locked environment, STEP validation and VTK preview rendering. The agent still implements the target's geometry from evidence; this is not an automatic image-to-CAD converter.
+The package includes an isolated background workspace with an empty component catalog, generator templates, a locked environment, STEP validation and VTK preview rendering. The agent still implements the target's geometry from evidence; this is not an automatic image-to-CAD converter.
 
 ## Install in your AI tool
 
 Use the [skills CLI](https://github.com/vercel-labs/skills) with Node.js 22.20+ and Git:
 
 ```sh
-npx skills add Yarnadori/electronic-component-cad
+npx skills add Yarnadori/electronic-component-cad -g
 ```
 
-Select the AI tools in the installer. It installs to the current project by default; add `-g` for a personal installation available across projects. To choose several tools explicitly:
+Select the AI tools in the installer. The recommended `-g` installs to your personal skill directories, keeping skill files out of the working project. Omit it only when you deliberately want a project-scoped skill installation. To choose several tools explicitly:
 
 ```sh
-npx skills add Yarnadori/electronic-component-cad -a codex claude-code gemini-cli cursor github-copilot windsurf
+npx skills add Yarnadori/electronic-component-cad -g -a codex claude-code gemini-cli cursor github-copilot windsurf
 ```
 
 | Tool | `--agent` value |
@@ -66,7 +66,7 @@ Use $electronic-component-cad to create a KiCad STEP model for this product:
 
 In Claude Code, invoke `/electronic-component-cad` with the product URL. In other hosts, request the skill by name or provide its `SKILL.md` path. You can also request a correction to an existing model, with the target part and observed defect.
 
-Expected outputs are a colored STEP, editable Python source, final-STEP previews, validation JSON, references with provenance, and notes on dimensions, coordinates and approximations. Default new-project folders are `models/<part-number>/` and `references/<part-number>/`.
+Your project receives only `models/<part-number>/`, containing the colored STEP, previews, validation records and model notes. Source code, downloaded references, environments and caches stay in a persistent workspace outside your project. The same project reuses its workspace for corrections and regeneration; editable source remains available on request. The agent handles this setup in the background.
 
 ## Requirements and boundaries
 
@@ -79,13 +79,15 @@ The skill respects the current host's permissions and existing project conventio
 
 Windows CAD export/rendering and the standalone starter are exercised by the package tests. Other OS backends and end-to-end operation in Claude Code/Gemini CLI have not been tested. The agent must still inspect the actual drawings and final images. KiCad placement, printability and mechanical/thermal/electrical performance require their own checks.
 
-## New-project starter
+## Workspace setup for agents
 
 ```sh
-python /path/to/electronic-component-cad/scripts/init_project.py /path/to/empty-project
+python /path/to/electronic-component-cad/scripts/init_project.py /path/to/user-project --json
 ```
 
-The initializer refuses occupied destinations and does not overwrite a project. Then follow [the project API guide](references/project-api.md). Existing projects should reuse their current pipeline instead.
+The initializer returns a workspace outside the user project. Existing project files and edited workspace sources are preserved. Follow [the project API guide](references/project-api.md) for internal commands, storage locations and an optional override. Keep setup commands and workspace paths out of routine user-facing output.
+
+`--standalone` is an explicit alternative for creating an editable CAD library directly in a new/empty directory; it refuses an occupied destination. Existing CAD libraries should reuse their pipeline. Files created in a project by older versions are not automatically moved or deleted.
 
 ## Development checks
 
@@ -96,6 +98,6 @@ uv sync --project assets/starter --locked
 uv run --project assets/starter --offline python -m unittest discover -s tests -v
 ```
 
-Tests exercise initialization, overwrite refusal, incomplete-template guards, colored STEP export/reimport, overlap rejection and preview output in temporary projects. Rendering is checked for output creation; human/agent visual inspection remains a separate step. See [validation notes](VALIDATION.md) for the recorded verification scope.
+Tests exercise external workspace creation/reuse, project isolation, refusal to overwrite unrecognized workspaces, no fallback into the project on setup failure, explicit standalone setup, incomplete-template guards, colored STEP export/reimport, output overrides, overlap rejection and previews in temporary projects. Rendering is checked for output creation; human/agent visual inspection remains a separate step. See [validation notes](VALIDATION.md) for the recorded verification scope.
 
 When contributing, keep the skill vendor-neutral, keep sample geometry synthetic or appropriately licensed, and test any scripts in isolation. Do not include downloaded datasheets, product photos, credentials, local environments or personal paths.

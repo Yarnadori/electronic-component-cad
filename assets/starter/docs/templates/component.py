@@ -1,13 +1,13 @@
 """Unregistered component template, not a finished model.
 
-Copy into akicad_3d/components/<manufacturer>/<component>.py, then replace
+Copy into component_cad/components/<manufacturer>/<component>.py, then replace
 every TODO using the actual drawing and photos. See docs/adding-components.md.
 No CadQuery geometry is created and no file is written by importing this file.
 """
 from dataclasses import asdict, dataclass
 import cadquery as cq
-from akicad_3d.core import PreviewSpec, View
-from akicad_3d.validation import near
+from component_cad.core import PreviewSpec, View
+from component_cad.validation import near
 
 
 @dataclass(frozen=True)

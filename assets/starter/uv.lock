@@ -107,7 +107,7 @@ wheels = [
 ]
 
 [[package]]
-name = "akicad-3d"
+name = "electronic-component-models"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

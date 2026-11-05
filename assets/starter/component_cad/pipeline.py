@@ -3,6 +3,7 @@ import hashlib
 import importlib
 import json
 import os
+import shutil
 from pathlib import Path
 from .core import ROOT
 from .validation import verify_step
@@ -56,16 +57,25 @@ def build_part(part, output_root=None, *, preview=True):
             return Path(os.path.relpath(path, out)).as_posix()
         except ValueError:  # Different Windows drives: keep a valid absolute file path.
             return Path(path).resolve().as_posix()
+    managed = (ROOT / "workspace.json").is_file()
+    if managed:
+        shutil.copyfile(ROOT / part.documentation, out / "notes.md")
+        documentation = "notes.md"
+        source_line = ""
+        rebuild = "修正・再生成は、このプロジェクトで型番を指定してスキルに依頼してください。"
+    else:
+        documentation = link(ROOT / part.documentation)
+        source_line = f"- [CadQueryソース]({link(source)})\n"
+        rebuild = f"再生成：`uv run --offline python -m component_cad build {part.part_number}`"
     preview_line = "- [STEPから描画したプレビュー](preview.png)\n" if preview else ""
     readme = (f"# {part.part_number}\n\n"
               f"- [色付きSTEP]({step.name})\n"
               f"- [色付きGLB]({part.model_name}.glb)\n"+preview_line+
-              f"- [寸法・座標・近似範囲]({link(ROOT / part.documentation)})\n"
-              f"- [CadQueryソース]({link(source)})\n"
+              f"- [寸法・座標・近似範囲]({documentation})\n"+source_line+
               "- [型番情報](metadata.json) / [検証結果](validation.json)\n\n"
               f"出典：{part.source_revision}、{part.source_page}ページ。"
-              f"{report['solid_count']}ソリッド、{len(report['checks'])}項目を検証。単位mm、倍率1。\n\n"
-              f"再生成：`uv run --offline python -m akicad_3d build {part.part_number}`\n")
+              f"{report['solid_count']}ソリッド、{len(report['checks'])}項目を検証。単位mm、倍率1。\n\n"+
+              rebuild+"\n")
     (out / "README.md").write_text(readme, encoding="utf-8")
     if preview:
         render_part(part, output_root)

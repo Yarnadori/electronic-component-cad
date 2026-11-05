@@ -3,9 +3,23 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 import os
+import json
 
 ROOT = Path(__file__).resolve().parents[1]
 os.environ.setdefault("XDG_CACHE_HOME", str(ROOT / ".uv-cache"))
+
+
+def default_output_root():
+    marker = ROOT / "workspace.json"
+    if not marker.is_file():
+        return ROOT / "models"
+    settings = json.loads(marker.read_text(encoding="utf-8"))
+    if settings.get("kind") != "electronic-component-cad" or settings.get("schema") != 1:
+        raise ValueError("Unsupported workspace configuration")
+    output = Path(settings["output_directory"])
+    if not output.is_absolute():
+        raise ValueError("Workspace output directory must be absolute")
+    return output
 
 
 @dataclass(frozen=True)
@@ -28,7 +42,7 @@ class Part:
         return Path(self.part_number)
 
     def output_dir(self, root=None):
-        return Path(root if root is not None else ROOT / "models") / self.output_subdir
+        return Path(root if root is not None else default_output_root()) / self.output_subdir
 
     def to_dict(self):
         return {**asdict(self), "output_subdir": self.output_subdir.as_posix()}
