@@ -1,0 +1,35 @@
+# Python / uv
+.venv/
+.uv-cache/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# CAD temporary files
+*.FCStd1
+*.FCBak
+*-bak.kicad_*
+*.kicad_prl
+fp-info-cache
+
+# Local probes / scratch
+references/probe.*
+*.tmp
+*.log
+
+# Secrets / local settings
+.env
+.env.*
+.claude/settings.local.json
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/

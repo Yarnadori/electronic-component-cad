@@ -1,0 +1,4 @@
+interface:
+  display_name: "電子部品3Dモデル"
+  short_description: "商品URLや寸法図からCadQueryで電子部品の3Dモデルを生成・検証"
+  default_prompt: "Use $electronic-component-cad to create a verified KiCad STEP model from the supplied product URL or drawing."
