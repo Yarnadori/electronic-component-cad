@@ -30,7 +30,7 @@ If the user explicitly requests a standalone CAD source library, `init_project.p
 
 The bundled lock selects CadQuery 2.8.0 across Python 3.11–3.13. Its lower bound follows [CadQuery 2.8.0's package requirement](https://pypi.org/project/cadquery/2.8.0/); this project has not enabled Python 3.14+. No `.python-version` file is distributed. uv selects a compatible installed interpreter or obtains one when permitted. To choose a specific supported version, use e.g. `uv sync --locked --python 3.13`; the example is not a repository-wide pin. The volume check should report 6.0. The initial catalog is intentionally empty. A first sync may download Python/dependencies; `--offline` is for an installed environment or populated cache. Do not copy another machine's `.venv` or re-run `uv init` in an existing project.
 
-PDF rasterization needs a separate Poppler installation (`pdfinfo`, `pdftoppm`), or an available equivalent. VTK/Pillow handle STEP previews. The starter tries Arial, DejaVu Sans, then Pillow's fallback font. Headless rendering and other operating systems require verification in the target environment; the supplied workflow has been exercised on Windows only.
+PDF rasterization needs a separate Poppler installation (`pdfinfo`, `pdftoppm`), or an available equivalent. VTK/Pillow handle STEP previews. The starter tries Arial, DejaVu Sans, then Pillow's fallback font. The automated CAD/rendering tests have passed on Windows and Ubuntu CI with a virtual display; see [validation results](https://github.com/Yarnadori/electronic-component-cad/blob/main/VALIDATION.md). Other operating systems and rendering environments require verification in the target environment.
 
 ## Implement a part
 

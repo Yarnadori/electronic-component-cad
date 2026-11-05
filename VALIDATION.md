@@ -14,6 +14,8 @@ Local verification on 2026-11-05 used separate uv environments on Windows x86-64
 
 Each version exercised STEP export/reimport, geometry and overlap checks, preview rendering, external workspace isolation and output overrides. The dependency lock is unchanged. See [GitHub Actions](https://github.com/Yarnadori/electronic-component-cad/actions/workflows/ci.yml) for the current Ubuntu/Python matrix results; the committed workflow alone is not evidence of a passing run.
 
+For v0.1.2 (`33153df`), [Ubuntu CI run 41982995763](https://github.com/Yarnadori/electronic-component-cad/actions/runs/41982995763) completed successfully on all three Python versions. Each job ran all 9 tests with no skips. A fresh installation from the public repository also delivered all 34 tracked files to the six targets listed below, allowing only Git's line-ending normalization. The installed initializer created and reused an external workspace without changing the existing user-project file.
+
 The documented range-based bootstrap was also exercised after removing the pin: uv selected Python 3.13.9, created an external workspace/environment, and generated a volume-6 CAD smoke solid without adding files to the user's project.
 
 Installation verification uses skills CLI **1.7.6** on Node.js **24.16.0** to discover the skill from `Yarnadori/electronic-component-cad` and install it in an isolated project for **Codex, Claude Code, Gemini CLI, Cursor, GitHub Copilot and Windsurf**. Check that the entire skill, including starter assets, arrives intact while local environments and caches are excluded. Installation checks verify file delivery and bundled code, not execution by each AI product.
